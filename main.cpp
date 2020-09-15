@@ -1,3 +1,10 @@
+/*
+* Class: COP4531
+* Assignment: 1
+* Author: Ryan Ratkovich
+* Date: 09/15/2020
+*/
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -10,11 +17,11 @@ using namespace std;
 
 /* 	HELPER FUNCTIONS */
 
-int compute_euclidean_distance(const pair<int, int> & p1, const pair<int, int> & p2){ //helper function that computes Euclidean distance
+int compute_euclidean_distance(const pair<int, int> & p1, const pair<int, int> & p2){ // computes Euclidean distance of 2 points
 	return sqrt(pow(p2.first - p1.first,2) + pow(p2.second - p1.second,2));
 }
 
-vector<int> compute_nn_edges(vector<pair<int, int>> points){	//computes nearest neighbor of points
+vector<int> compute_nn_edges(vector<pair<int, int>> points){	// computes nearest neighbor of each point
 	vector<int> G1(points.size());
 	int distance = INT_MAX;
 	int nn = -1;	// holds position of point's nearest neighbor
@@ -33,9 +40,9 @@ vector<int> compute_nn_edges(vector<pair<int, int>> points){	//computes nearest 
 	return G1;
 }
 
-vector<int> compute_matching(vector<pair<int, int>> points, vector<int> G1){
+vector<int> compute_sl_vertices(vector<int> G1){	// computes the sl-vertices
 
-	vector<int> deg_v(G1.size());	//build vector that holds degree of each vertex
+	vector<int> deg_v(G1.size());	// vector that holds degree of each vertex
 	int degree = 0;
 	for (int i = 0; i < deg_v.size(); ++i){
 		if (G1[i] != -1)	//	if point "i" is connected to any other point, increment deg(i)
@@ -56,17 +63,35 @@ vector<int> compute_matching(vector<pair<int, int>> points, vector<int> G1){
 		}
 	}
 
-	// build vector that holds sl-vertices
-	vector<int> sl_vertices;
+	vector<int> sl_vertices;	// vector that holds sl-vertices
 	for (int i = 0; i < deg_v.size(); ++i){
 		if (deg_v[i] == 1)
 			sl_vertices.push_back(i);
 	}
+	return sl_vertices;
+}
 
-	vector<int> G2(sl_vertices.size());	// create G2 vector which will contain the edges that complete the reconstruction
+vector<int> compute_matching(vector<pair<int, int>> points, vector<int> G1){
 
+	vector<int> G2(G1.size());	// create G2 vector which will contain the edges that complete the reconstruction
+	for (int & i : G2)	// initialize all G2 values to -1
+		i = -1;
 
-	return G2;
+	/* COMPUTE SL-VERTICES */
+
+	vector<int> sl_vertices = compute_sl_vertices(G1);
+
+	vector<pair<int,int>> sl_vertices_pairs;	// vector that holds std::pair's of sl-vertices
+	for (const int & i : sl_vertices)
+		sl_vertices_pairs.push_back(points[i]);
+
+	/* COMPUTE WEIGHTS OF SL-EDGES */
+
+	return sl_vertices;
+}
+
+bool is_admissable(pair<int, int> p1, pair<int, int> p2){
+
 }
 
 /* MAIN */
@@ -91,7 +116,6 @@ int main() {
 		points.push_back(pair<int, int>(first, second));
 	}
 
-	// PRINTS POINTS
 	cout << "Points:" << endl;
 	for (const auto & p : points)
 		cout << p.first << "," << p.second << endl;
@@ -104,7 +128,7 @@ int main() {
 		cout << "[" << i << "]: " << G1[i] << endl;
 	cout << endl;
 
-	vector<int> sl_vertices = compute_matching(points, G1);
+	vector<int> sl_vertices = compute_matching(points, G1); // store G-S algorithm edges
 
 	cout << "sl_vertices:" << endl;
 	for (int i = 0; i < sl_vertices.size(); ++i)
