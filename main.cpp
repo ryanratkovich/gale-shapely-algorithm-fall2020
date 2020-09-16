@@ -163,25 +163,85 @@ vector<int> compute_matching(vector<pair<int, int>> points, vector<int> G1){
 
 	/* PERFORM MODIFIED GALE-SHAPELY ALGORITHM */
 
-	vector<vector<int>> proposal_table(G1.size());	// keeps track of which points have proposed to other points
-	int i, j = 0;
-	int point = G1[0];	// let this be the first point to begin proposing to other points
-	bool free_point_available = true;
+	vector<vector<int>> proposal_table(G2.size(), vector<int>(G2.size()));;	// keeps track of which points have proposed to other points
 
-	while (free_point_available){
-		int proposed_point = preference_list[i][j].first;	// point to propose to
-		++proposal_table[proposed_point];	// mark that this point has been proposed to by the proposing point
-		G2[i] = proposed_point;
-		G2[proposed_point] = i;
+	for (int i = 0; i < proposal_table.size(); ++i){	// initialize proposal table
+		for (int j = 0; j < proposal_table[i].size(); ++j){
+			if (j == proposal_table[i].size() - 1)
+				proposal_table[i][j] = 1;
+			if (i == j)
+				proposal_table[i][j] = 1;
+		}
+	}
 
+	// for (int i = 0; i < proposal_table.size(); ++i){
+	// 	for (int j = 0; j < proposal_table[i].size(); ++j){
+	// 		cout << proposal_table[i][j] << " ";
+	// 	}
+	// 	cout << endl;
+	// }
+	// cout << endl;
 
-		for(int k = 0; k < G1.size(); ++k) {
-            if(manCurrentMatch[x] == 0) {
-                m = x;
-                free_point_available = true;
+	int point = 0;	// let this be the first point to begin proposing to other points
+	bool free_point_exists = true;
+	while (free_point_exists){
+		free_point_exists = false;
+		int preferred_point = 0;	// placeholder for the point to be proposed to
+		for (int i = 0; i < preference_list[point].size(); ++i){
+			if (proposal_table[point][i] == 0){	// if point hasnt proposed to point "i"
+				preferred_point = G1[preference_list[point][i].second];
+				proposal_table[point][i] = 1;
+				break;
+			}
+		}
+		if (G2[preferred_point] == -1){	// if G2[preferred_point] is free, the points are matched in G2
+			G2[point] = preferred_point;
+			G2[preferred_point] = point;
+		} else {	// else if preferred_point prefers point to their current match
+			int preferred_point_current_partner = G2[preferred_point];
+			int weight_of_point = 0;
+			for (int i = 0; i < preference_list[preferred_point].size(); ++i){	// get point's weight in proposed points preference list
+				if (preference_list[preferred_point][i].second == point){
+					weight_of_point = preference_list[preferred_point][i].first;
+					break;
+				}
+			}
+			for (int i = 0; i < preference_list[preferred_point].size(); ++i){
+				if (weight_of_point < preference_list[preferred_point][i].first){
+					G2[point] = preferred_point;
+					G2[preferred_point] = point;
+					G2[preferred_point_current_partner] = -1;
+					break;
+				}
+			}
+		}
+
+		for(int i = 0; i < proposal_table.size(); ++i) {	// find another free point, if one exists
+			bool has_proposed_to_every_point = true;
+			for (int j = 0; j < proposal_table[i].size(); ++j){	// check if point has proposed to every other point
+				if (proposal_table[i][j] == 0){
+					has_proposed_to_every_point = false;
+					break;
+				}
+			}
+            if(G2[i] == -1 && !has_proposed_to_every_point) { // if free and hasnt proposed to all points
+                point = i;	// i becomes next point to propose
+                free_point_exists = true;
                 break;
          	}
        	}
+       	cout << "G2:" << endl;
+		for (int i = 0; i < G2.size(); ++i){
+			cout << G2[i] << " ";
+		}
+		cout << endl;
+	}
+	cout << endl;
+	for (int i = 0; i < proposal_table.size(); ++i){
+		for (int j = 0; j < proposal_table[i].size(); ++j){
+			cout << proposal_table[i][j] << " ";
+		}
+	cout << endl;
 	}
 
 	return G2;
@@ -223,10 +283,11 @@ int main() {
 
 	vector<int> G2 = compute_matching(points, G1); // store G-S algorithm edges
 
-	// cout << "G2 (G-S points):" << endl;
-	// for (int i = 0; i < G2.size(); ++i)
-	// 	cout << "[" << i << "]: " << G2[i] << endl;
-	// cout << endl;
+	cout << "G2:" << endl;
+	for (int i = 0; i < G2.size(); ++i){
+		cout << G2[i] << " ";
+	}
+	cout << endl;
 
 	return 0;
 }
