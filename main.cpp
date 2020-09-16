@@ -12,6 +12,7 @@
 #include <utility>
 #include <cmath>
 #include <climits>
+#include <algorithm>
 
 using namespace std;
 
@@ -75,22 +76,22 @@ bool is_admissable(pair<int, int> p1, pair<int, int> p2, pair<int, int> p3){	// 
 	double p3_p2 = compute_euclidean_distance(p3, p2);
 	double p1_p3 = compute_euclidean_distance(p1, p3);
 
-	cout << "Distances for: " << "(" << p1.first << "," << p1.second << ")" << "(" << p2.first << "," << p2.second << ")" << "(" << p3.first << "," << p3.second << ")" << endl;
-	cout << "Length p1->p2: " << p1_p2 << endl;
-	cout << "Length p3->p2: " << p3_p2 << endl;
-	cout << "Length p1->p3: " << p1_p3 << endl;
+	//cout << "Distances for: " << "(" << p1.first << "," << p1.second << ")" << "(" << p2.first << "," << p2.second << ")" << "(" << p3.first << "," << p3.second << ")" << endl;
+	//cout << "Length p1->p2: " << p1_p2 << endl;
+	//cout << "Length p3->p2: " << p3_p2 << endl;
+	//cout << "Length p1->p3: " << p1_p3 << endl;
 
 	double deg = acos(((pow(p3_p2,2) + pow(p1_p2,2) - pow(p1_p3,2)) / (2*p3_p2*p1_p2))) * (180 / M_PI);
 
-	cout << "deg: " << deg << endl;
-	cout << endl;
+	//cout << "deg: " << deg << endl;
+	//cout << endl;
 	if (deg <= 90 || deg >= 270)
 		return false;
 	return true;
 }
 
-vector<vector<int>> compute_weights(vector<pair<int, int>> sl_vertices_pairs, vector<int> G1, vector<pair<int, int>> points){	// computes weights for each sl-edge
-	vector<vector<int>> preference_list(sl_vertices_pairs.size());	// list of weights for each sl-edge
+vector<vector<pair<int, int>>> compute_weights(vector<pair<int, int>> sl_vertices_pairs, vector<int> G1, vector<pair<int, int>> points){	// computes weights for each sl-edge
+	vector<vector<pair<int ,int>>> preference_list(sl_vertices_pairs.size());	// list of weights for each sl-edge
 	for (int i = 0; i < preference_list.size(); ++i){
 		double weight = INT_MAX;
 		pair<int, int> incident_point_of_i; // get incident point to point "i"
@@ -103,9 +104,9 @@ vector<vector<int>> compute_weights(vector<pair<int, int>> sl_vertices_pairs, ve
 		}
 		for (int j = 0; j < sl_vertices_pairs.size(); ++j){
 			if (i != j){
-				if (incident_point_of_i == sl_vertices_pairs[j]){
+				if (sl_vertices_pairs[j] == incident_point_of_i){
 					weight = compute_euclidean_distance(sl_vertices_pairs[i], sl_vertices_pairs[j]);
-					preference_list[i].push_back(weight);
+					preference_list[i].push_back(pair<int, int>(weight, G1[j]));
 					continue;
 				}
 				if (is_admissable(incident_point_of_i, sl_vertices_pairs[i], sl_vertices_pairs[j])){
@@ -113,10 +114,14 @@ vector<vector<int>> compute_weights(vector<pair<int, int>> sl_vertices_pairs, ve
 				} else {
 					weight = INT_MAX;
 				}
-				preference_list[i].push_back(weight);
+				preference_list[i].push_back(pair<int, int>(weight, G1[j]));
 			}
 		}
 	}
+
+	for (int i = 0; i < preference_list.size(); ++i)
+		sort(preference_list[i].begin(), preference_list[i].end());
+
 	return preference_list;
 }
 
@@ -126,29 +131,58 @@ vector<int> compute_matching(vector<pair<int, int>> points, vector<int> G1){
 		i = -1;
 
 	/* COMPUTE SL-VERTICES */
-	vector<int> sl_vertices = compute_sl_vertices(G1);
+	vector<int> sl_vertices = compute_sl_vertices(G1);	// stores sl-vertices in a vector
+
+	// cout << "sl-vertices:" << endl;
+	// for (int i = 0; i < sl_vertices.size(); ++i){
+	// 	cout << "[" << i << "]: " << sl_vertices[i] << endl;
+	// }
+	// cout << endl;
 
 	vector<pair<int,int>> sl_vertices_pairs;	// vector that holds std::pair's of sl-vertices
 	for (const int & i : sl_vertices)
 		sl_vertices_pairs.push_back(points[i]);
 
-	cout << "sl-vertices (pairs):" << endl;
-	for (const auto & p : sl_vertices_pairs)
-		cout << p.first << ", " << p.second << endl;
-	cout << endl;
+	// cout << "sl-vertices (pairs):" << endl;
+	// for (const auto & p : sl_vertices_pairs)
+	// 	cout << p.first << ", " << p.second << endl;
+	// cout << endl;
 
 	/* COMPUTE WEIGHTS OF SL-EDGES */
-	vector<vector<int>> preference_list = compute_weights(sl_vertices_pairs, G1, points);
+	vector<vector<pair<int, int>>> preference_list = compute_weights(sl_vertices_pairs, G1, points);	// stores weights in a matrix
 
 	cout << "preference_list:" << endl;
 	for (int i = 0; i < preference_list.size(); ++i){
-		cout << "[" << sl_vertices[i] << "]: ";
+		cout << "sl[" << i << "]-(" << sl_vertices_pairs[i].first << "," << sl_vertices_pairs[i].second << "): ";
 		for (int j = 0; j < preference_list[i].size(); ++j){
-			cout << preference_list[i][j] << " ";
+			cout << "(w:" << preference_list[i][j].first << ",G1[" << preference_list[i][j].second << "]) ";
 		}
 		cout << endl;
 	}
 	cout << endl;
+
+	/* PERFORM MODIFIED GALE-SHAPELY ALGORITHM */
+
+	vector<vector<int>> proposal_table(G1.size());	// keeps track of which points have proposed to other points
+	int i, j = 0;
+	int point = G1[0];	// let this be the first point to begin proposing to other points
+	bool free_point_available = true;
+
+	while (free_point_available){
+		int proposed_point = preference_list[i][j].first;	// point to propose to
+		++proposal_table[proposed_point];	// mark that this point has been proposed to by the proposing point
+		G2[i] = proposed_point;
+		G2[proposed_point] = i;
+
+
+		for(int k = 0; k < G1.size(); ++k) {
+            if(manCurrentMatch[x] == 0) {
+                m = x;
+                free_point_available = true;
+                break;
+         	}
+       	}
+	}
 
 	return G2;
 }
@@ -182,10 +216,10 @@ int main() {
 
 	vector<int> G1 = compute_nn_edges(points);	// store nearest neighbors
 
-	cout << "G1 (nearest neighbors):" << endl;
-	for (int i = 0; i < G1.size(); ++i)
-		cout << "[" << i << "]: " << G1[i] << endl;
-	cout << endl;
+	// cout << "G1 (nearest neighbors):" << endl;
+	// for (int i = 0; i < G1.size(); ++i)
+	// 	cout << "[" << i << "]: " << G1[i] << endl;
+	// cout << endl;
 
 	vector<int> G2 = compute_matching(points, G1); // store G-S algorithm edges
 
