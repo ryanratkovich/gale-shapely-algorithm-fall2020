@@ -76,29 +76,13 @@ bool is_admissable(pair<int, int> p1, pair<int, int> p2, pair<int, int> p3, pair
 	double p3_p2 = compute_euclidean_distance(p3, p2);
 	double p1_p3 = compute_euclidean_distance(p1, p3);
 
-	cout << "Distances for: " << "(" << p1.first << "," << p1.second << ")" << "(" << p2.first << "," << p2.second << ")" << "(" << p3.first << "," << p3.second << ")" << endl;
-	cout << "Length p1->p2: " << p1_p2 << endl;
-	cout << "Length p3->p2: " << p3_p2 << endl;
-	cout << "Length p1->p3: " << p1_p3 << endl;
-
 	double deg1 = acos(((pow(p3_p2,2) + pow(p1_p2,2) - pow(p1_p3,2)) / (2*p3_p2*p1_p2))) * (180 / M_PI);
-
-	cout << "deg1: " << deg1 << endl;
-	cout << endl;
 
 	double p2_p3 = compute_euclidean_distance(p2, p3);
 	double p4_p3 = compute_euclidean_distance(p4, p3);
 	double p2_p4 = compute_euclidean_distance(p2, p4);
 
-	cout << "Distances for: " << "(" << p4.first << "," << p4.second << ")" << "(" << p3.first << "," << p3.second << ")" << "(" << p2.first << "," << p2.second << ")" << endl;
-	cout << "Length p2->p3: " << p2_p3 << endl;
-	cout << "Length p4->p3: " << p4_p3 << endl;
-	cout << "Length p2->p4: " << p2_p4 << endl;
-
 	double deg2 = acos(((pow(p4_p3,2) + pow(p2_p3,2) - pow(p2_p4,2)) / (2*p4_p3*p2_p3))) * (180 / M_PI);
-
-	cout << "deg2: " << deg2 << endl;
-	cout << endl;
 
 	if (deg1 <= 90 && deg2 <= 90)	// if the angles between points in a potential edge are small, reject
 		return false;
@@ -191,7 +175,7 @@ vector<int> compute_matching(vector<pair<int, int>> points, vector<int> G1){
 
 	/* PERFORM MODIFIED GALE-SHAPELY ALGORITHM */
 
-	vector<vector<int>> proposal_table(G2.size(), vector<int>(G2.size()));;	// keeps track of which points have proposed to other points
+	vector<vector<int>> proposal_table(preference_list.size(), vector<int>(preference_list.size()));;	// keeps track of which points have proposed to other points
 
 	for (int i = 0; i < proposal_table.size(); ++i){	// initialize proposal table
 		for (int j = 0; j < proposal_table[i].size(); ++j){
@@ -252,11 +236,11 @@ vector<int> compute_matching(vector<pair<int, int>> points, vector<int> G1){
                 break;
          	}
        	}
-       	cout << "G2:" << endl;
-		for (int i = 0; i < G2.size(); ++i){
-			cout << G2[i] << " ";
-		}
-		cout << endl;
+  //      	cout << "G2:" << endl;
+		// for (int i = 0; i < G2.size(); ++i){
+		// 	cout << G2[i] << " ";
+		// }
+		// cout << endl;
 	}
 
 	for (int i = 0; i < proposal_table.size(); ++i){
@@ -311,6 +295,16 @@ int main() {
 		cout << G2[i] << " ";
 	}
 	cout << endl;
+	cout << endl;
+
+	int point = 0;	// print out the bipartite matching of G1 and G2
+	for (int i = 0; i < G2.size() + 1; ++i){
+		cout << point << endl;
+		if (i % 2 == 0)
+			point = G2[point];
+		else
+			point = G1[point];
+	}
 
 	return 0;
 }
